@@ -12,6 +12,7 @@ $.mobile.listview.prototype.options.filter = false;
 $.mobile.listview.prototype.options.filterPlaceholder = "Filter items...";
 $.mobile.listview.prototype.options.filterTheme = "c";
 $.mobile.listview.prototype.options.filterReveal = false;
+$.mobile.listview.prototype.options.filterOnEmptySearch = false;
 // TODO rename callback/deprecate and default to the item itself as the first argument
 var defaultFilterCallback = function( text, searchValue, item ) {
 		return text.toString().toLowerCase().indexOf( searchValue ) === -1;
@@ -49,8 +50,11 @@ $.mobile.document.delegate( "ul, ol", "listviewcreate", function() {
 				item,
 				// Check if a custom filter callback applies
 				isCustomFilterCallback = listview.options.filterCallback !== defaultFilterCallback;
-
-			if ( lastval && lastval === val ) {
+			
+			if ( isCustomFilterCallback && typeof listview.options.filterCallback == "string") {
+				listview.options.filterCallback = window[listview.options.filterCallback](list);
+			}
+			if ( lastval && lastval === val && !listview.options.filterOnEmptySearch ) {
 				// Execute the handler only once per value change
 				return;
 			}
@@ -73,7 +77,7 @@ $.mobile.document.delegate( "ul, ol", "listviewcreate", function() {
 				}
 			}
 
-			if ( val ) {
+			if ( val || listview.options.filterOnEmptySearch ) {
 
 				// This handles hiding regular rows without the text we search for
 				// and any list dividers without regular rows shown under it
@@ -119,9 +123,9 @@ $.mobile.document.delegate( "ul, ol", "listviewcreate", function() {
 			listview._addFirstLastClasses( li, listview._getVisibles( li, false ), false );
 		},
 		search = $( "<input>", {
+			value: '',
 			placeholder: listview.options.filterPlaceholder
-		})
-		.attr( "data-" + $.mobile.ns + "type", "search" )
+		}).attr( "data-" + $.mobile.ns + "type", "search" )
 		.jqmData( "lastval", "" )
 		.bind( "keyup change input", onKeyUp )
 		.appendTo( wrapper )
@@ -135,6 +139,10 @@ $.mobile.document.delegate( "ul, ol", "listviewcreate", function() {
 		return false;
 	})
 	.insertBefore( list );
+	
+	if( listview.options.filterOnEmptySearch ) {
+		onKeyUp.call(search.get(0));
+	}
 });
 
 })( jQuery );
